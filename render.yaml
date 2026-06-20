@@ -1,11 +1,13 @@
 services:
-  - type: static_site
+  - type: web_service
     name: credits-balance-presidency
-    env: static
+    env: node
     branch: main
-    buildCommand: ""
-    publishPath: "."
+    buildCommand: "npm install"
+    startCommand: "npm start"
     plan: free
     autoDeploy: true
     pullRequestPreviewsEnabled: false
-    envVars: []
+    envVars:
+      - key: ANTHROPIC_API_KEY
+        value: ""
