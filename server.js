@@ -124,7 +124,10 @@ async function handleScan(req, res) {
 
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
-  if (url.pathname === '/api/scan') {
+  if (req.method === 'OPTIONS' && url.pathname.startsWith('/api/')) {
+    return send(res, 204, '', 'text/plain');
+  }
+  if (url.pathname === '/api/scan' || url.pathname === '/api/scan/') {
     return handleScan(req, res);
   }
   if (url.pathname === '/api/health') {
