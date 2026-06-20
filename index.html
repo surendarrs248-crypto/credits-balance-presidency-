@@ -3351,6 +3351,7 @@ Return ONLY valid JSON, no markdown fences, no preamble, matching exactly this s
 }
 Rules: status should be "failed" if grade is F or NP, "pending" if no grade yet and clearly in-progress, "registered" if currently enrolled with no result, "completed" otherwise. If a subject shows "NP" (Not Permitted) or "NE" (Not Examined / Not Eligible) treat the grade field as exactly "NP" or "NE" respectively and status as "failed" for NP, "pending" for NE. Make credits a number (integer or decimal). If credits are not shown, estimate 3. Only include real subject rows, skip totals/headers/signatures.`;
 
+  const browserApiKey = getStoredApiKey();
   try{
     const response = await fetch('/api/scan', {
       method: 'POST',
@@ -3360,7 +3361,8 @@ Rules: status should be "failed" if grade is F or NP, "pending" if no grade yet 
       body: JSON.stringify({
         base64: scanFileData.base64,
         mediaType: scanFileData.mediaType,
-        prompt: systemPrompt
+        prompt: systemPrompt,
+        apiKey: browserApiKey || undefined
       })
     });
     if(!response.ok){
