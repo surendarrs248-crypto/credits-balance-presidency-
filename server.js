@@ -48,26 +48,26 @@ async function serveStatic(req, res) {
 function parseAnthropicResponse(payload) {
   if (!payload) return '';
   if (typeof payload === 'string') return payload;
-  if (payload.output) {
-    for (const item of payload.output) {
-      if (item.type === 'message' && Array.isArray(item.content)) {
-        return item.content.map(c => (c.type === 'output_text' ? c.text : '')).join('');
-      }
-      if (item.type === 'output_text' && typeof item.text === 'string') {
-        return item.text;
-      }
+  const extractText = (obj) => {
+    if (!obj || typeof obj !== 'object') return '';
+    if (typeof obj.text === 'string' && (obj.type === 'output_text' || obj.type === 'message' || obj.type === 'input_text')) {
+      return obj.text;
     }
-  }
-  if (typeof payload.output_text === 'string') return payload.output_text;
-  if (typeof payload.text === 'string') return payload.text;
-  return JSON.stringify(payload);
+    if (typeof obj.output_text === 'string') return obj.output_text;
+    if (Array.isArray(obj.output)) {
+      return obj.output.map(extractText).join('');
+    }
+    if (Array.isArray(obj.content)) {
+      return obj.content.map(extractText).join('');
+    }
+    return Object.values(obj).map(extractText).join('');
+  };
+  const result = extractText(payload);
+  return result || JSON.stringify(payload);
 }
 
 async function handleScan(req, res) {
   if (req.method !== 'POST') return send(res, 405, 'Method not allowed');
-  if (!AI_KEY) {
-    return send(res, 401, JSON.stringify({ error: 'Server missing ANTHROPIC_API_KEY environment variable.' }), 'application/json');
-  }
 
   let body = '';
   for await (const chunk of req) body += chunk;
@@ -81,8 +81,12 @@ async function handleScan(req, res) {
   const prompt = payload.prompt || 'Extract all subjects, grades, credits and student info from this mark sheet / grade card.';
   const imageBase64 = payload.base64;
   const mediaType = payload.mediaType || 'image/png';
+  const requestApiKey = payload.apiKey || AI_KEY;
   if (!imageBase64) {
     return send(res, 400, JSON.stringify({ error: 'Missing image base64 payload.' }), 'application/json');
+  }
+  if (!requestApiKey) {
+    return send(res, 401, JSON.stringify({ error: 'API key missing for Anthropic request. Set RENDER_AI_API_KEY in Render or save an Anthropic key in Settings.' }), 'application/json');
   }
 
   const imageUrl = `data:${mediaType};base64,${imageBase64}`;
@@ -91,7 +95,9 @@ async function handleScan(req, res) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': AI_KEY,
+        'Accept': 'application/json',
+        'x-api-key': requestApiKey,
+        'anthropic-version': '2024-12-17',
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4.6',
