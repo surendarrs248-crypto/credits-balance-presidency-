@@ -1,0 +1,11 @@
+services:
+  - type: static_site
+    name: credits-balance-presidency
+    env: static
+    branch: main
+    buildCommand: ""
+    publishPath: "."
+    plan: free
+    autoDeploy: true
+    pullRequestPreviewsEnabled: false
+    envVars: []
