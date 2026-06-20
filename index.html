@@ -1134,7 +1134,7 @@ body{background:var(--bg);color:var(--ink);font-family:'IBM Plex Sans',sans-seri
           <input class="form-input" id="s-api-key" type="password" placeholder="sk-ant-..." autocomplete="off"/>
         </div>
         <div style="background:var(--accent-light);border:1px solid #bdd0ec;border-radius:var(--r);padding:10px 14px;font-size:11.5px;color:var(--ink2);line-height:1.5">
-          Needed only if you're running this file outside Claude.ai (e.g. opened locally or hosted elsewhere) and want to use 📷 Scan Mark Sheet. Get a key at <strong>console.anthropic.com</strong> → API Keys. Your key is stored in this browser's local storage and sent with the scan request to the app backend so the scan can work even when the service has no built-in Render key configured. Clear it anytime with the button below.
+          Needed only if you're running this file outside Claude.ai (e.g. opened locally or hosted elsewhere) and want to use 📷 Scan Mark Sheet. Get a key at <strong>console.anthropic.com</strong> → API Keys. Your key is stored in this browser's local storage and sent with the scan request to the app backend so scans can work when the service does not have its own configured API key. Clear it anytime with the button below.
           <div style="margin-top:8px;display:flex;gap:8px;align-items:center">
             <span id="apiKeyStatus" style="font-size:11px;font-weight:600">No key saved</span>
             <button type="button" class="btn btn-secondary btn-sm" style="margin-left:auto" onclick="clearApiKey()">Clear Key</button>
@@ -2662,7 +2662,7 @@ function refreshApiKeyStatus(){
     el.textContent='✓ Key saved ('+maskKey(key)+')';
     el.style.color='var(--green)';
   }else{
-    el.textContent='No key saved — using Claude.ai built-in access if available';
+    el.textContent='No key saved — use a saved Anthropic key or configure RENDER_AI_API_KEY on your host service.';
     el.style.color='var(--ink4)';
   }
 }
@@ -3263,7 +3263,7 @@ function renderScanKeyBanner(){
       </div>`;
   } else {
     el.innerHTML=`<div style="background:var(--amber-bg);border:1px solid #f5d5a1;border-radius:var(--r);padding:8px 12px;font-size:11.5px;color:var(--amber);display:flex;align-items:center;gap:8px">
-        <span>⚠ No saved Anthropic key. The scan will use Render env keys if configured, otherwise set one in Settings.</span>
+        <span>⚠ No saved Anthropic key. The scan will use the Render environment key if configured, otherwise set one in Settings.</span>
         <button type="button" class="btn btn-secondary btn-sm" style="margin-left:auto" onclick="closeScanModal();openSettingsModal()">Settings</button>
       </div>`;
   }
