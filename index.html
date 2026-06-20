@@ -1134,7 +1134,7 @@ body{background:var(--bg);color:var(--ink);font-family:'IBM Plex Sans',sans-seri
           <input class="form-input" id="s-api-key" type="password" placeholder="sk-ant-..." autocomplete="off"/>
         </div>
         <div style="background:var(--accent-light);border:1px solid #bdd0ec;border-radius:var(--r);padding:10px 14px;font-size:11.5px;color:var(--ink2);line-height:1.5">
-          Needed only if you're running this file outside Claude.ai (e.g. opened locally or hosted elsewhere) and want to use 📷 Scan Mark Sheet. Get a key at <strong>console.anthropic.com</strong> → API Keys. Your key is stored only in this browser's local storage, sent directly from your browser straight to Anthropic's API for each scan, and never goes through us or any third-party server. Clear it anytime with the button below.
+          Needed only if you're running this file outside Claude.ai (e.g. opened locally or hosted elsewhere) and want to use 📷 Scan Mark Sheet. Get a key at <strong>console.anthropic.com</strong> → API Keys. Your key is stored in this browser's local storage and sent with the scan request to the app backend so the scan can work even when the service has no built-in Render key configured. Clear it anytime with the button below.
           <div style="margin-top:8px;display:flex;gap:8px;align-items:center">
             <span id="apiKeyStatus" style="font-size:11px;font-weight:600">No key saved</span>
             <button type="button" class="btn btn-secondary btn-sm" style="margin-left:auto" onclick="clearApiKey()">Clear Key</button>
@@ -3256,10 +3256,17 @@ function renderScanKeyBanner(){
   const el=document.getElementById('scanKeyBanner');
   if(!el)return;
   const key=getStoredApiKey();
-  el.innerHTML=`<div style="background:var(--green-bg);border:1px solid #b3ddc3;border-radius:var(--r);padding:8px 12px;font-size:11.5px;color:var(--green);display:flex;align-items:center;gap:8px">
-      <span>✓ Scan requests are routed through the Render AI endpoint.</span>
-      <button type="button" class="btn btn-secondary btn-sm" style="margin-left:auto" onclick="closeScanModal();openSettingsModal()">Settings</button>
-    </div>`;
+  if(key){
+    el.innerHTML=`<div style="background:var(--green-bg);border:1px solid #b3ddc3;border-radius:var(--r);padding:8px 12px;font-size:11.5px;color:var(--green);display:flex;align-items:center;gap:8px">
+        <span>✓ Scan requests will use the saved Anthropic key from this browser.</span>
+        <button type="button" class="btn btn-secondary btn-sm" style="margin-left:auto" onclick="closeScanModal();openSettingsModal()">Settings</button>
+      </div>`;
+  } else {
+    el.innerHTML=`<div style="background:var(--amber-bg);border:1px solid #f5d5a1;border-radius:var(--r);padding:8px 12px;font-size:11.5px;color:var(--amber);display:flex;align-items:center;gap:8px">
+        <span>⚠ No saved Anthropic key. The scan will use Render env keys if configured, otherwise set one in Settings.</span>
+        <button type="button" class="btn btn-secondary btn-sm" style="margin-left:auto" onclick="closeScanModal();openSettingsModal()">Settings</button>
+      </div>`;
+  }
 }
 function openScanModalForStudent(studentId){
   openScanModal();
@@ -3373,7 +3380,6 @@ Rules: status should be "failed" if grade is F or NP, "pending" if no grade yet 
     }
     const data = await response.json();
     let text = data.text || '';
-    text = text.replace(/^```json\s*/i,'').replace(/^```\s*/,'').replace(/```\s*$/,'').trim();
     const parsed = JSON.parse(text);
     scanDetectedStudent = (parsed.studentName || parsed.rollNumber) ? { name: parsed.studentName || '', roll: parsed.rollNumber || '' } : null;
     scanResults = (parsed.subjects || []).map(s => ({
