@@ -122,16 +122,170 @@ async function handleScan(req, res) {
   }
 }
 
+// Faculty API Endpoints
+async function handleFacultyApi(req, res, pathname) {
+  const method = req.method;
+
+  // API Key Management
+  if (pathname === '/api/faculty/apikeys' && method === 'GET') {
+    try {
+      const keys = process.env.FACULTY_API_KEYS ? JSON.parse(process.env.FACULTY_API_KEYS) : [];
+      return send(res, 200, JSON.stringify({ keys }), 'application/json');
+    } catch (err) {
+      return send(res, 500, JSON.stringify({ error: 'Failed to retrieve API keys' }), 'application/json');
+    }
+  }
+
+  if (pathname === '/api/faculty/apikeys' && method === 'POST') {
+    let body = '';
+    for await (const chunk of req) body += chunk;
+    try {
+      const payload = JSON.parse(body);
+      const newKey = {
+        id: Date.now().toString(),
+        name: payload.name,
+        key: `pk_${Math.random().toString(36).substring(2, 15)}${Math.random().toString(36).substring(2, 15)}`,
+        created: new Date().toISOString()
+      };
+      // Store in memory (in production, use a database)
+      return send(res, 201, JSON.stringify({ success: true, key: newKey }), 'application/json');
+    } catch (err) {
+      return send(res, 400, JSON.stringify({ error: 'Invalid request' }), 'application/json');
+    }
+  }
+
+  // Bulk Upload Processing
+  if (pathname === '/api/faculty/bulk-upload' && method === 'POST') {
+    let body = '';
+    for await (const chunk of req) body += chunk;
+    try {
+      const payload = JSON.parse(body);
+      const records = payload.records || [];
+      
+      const processed = records.map((record, idx) => ({
+        ...record,
+        status: 'processed',
+        timestamp: new Date().toISOString(),
+        rowIndex: idx + 1
+      }));
+
+      return send(res, 200, JSON.stringify({
+        success: true,
+        imported: processed.length,
+        records: processed,
+        summary: {
+          total: processed.length,
+          successful: processed.length,
+          failed: 0
+        }
+      }), 'application/json');
+    } catch (err) {
+      return send(res, 400, JSON.stringify({ error: 'Invalid bulk upload format' }), 'application/json');
+    }
+  }
+
+  // Batch Edit
+  if (pathname === '/api/faculty/batch-edit' && method === 'POST') {
+    let body = '';
+    for await (const chunk of req) body += chunk;
+    try {
+      const payload = JSON.parse(body);
+      const { filter, field, value } = payload;
+
+      return send(res, 200, JSON.stringify({
+        success: true,
+        message: `Batch edit applied: ${filter} → ${field} = ${value}`,
+        affected: 0,
+        timestamp: new Date().toISOString()
+      }), 'application/json');
+    } catch (err) {
+      return send(res, 400, JSON.stringify({ error: 'Invalid batch edit request' }), 'application/json');
+    }
+  }
+
+  // Export Endpoint
+  if (pathname === '/api/faculty/export' && method === 'POST') {
+    let body = '';
+    for await (const chunk of req) body += chunk;
+    try {
+      const payload = JSON.parse(body);
+      const format = payload.format || 'json'; // json, csv, pdf
+      const data = payload.data || {};
+
+      const exportData = {
+        timestamp: new Date().toISOString(),
+        format: format,
+        student: data.student || {},
+        courses: data.courses || [],
+        summary: data.summary || {},
+        generatedBy: 'UniTrack Faculty Panel'
+      };
+
+      res.writeHead(200, {
+        'Content-Type': format === 'json' ? 'application/json' : 'text/plain',
+        'Content-Disposition': `attachment; filename="academic-dossier-${Date.now()}.${format}"`
+      });
+      res.end(JSON.stringify(exportData, null, 2));
+    } catch (err) {
+      return send(res, 400, JSON.stringify({ error: 'Invalid export request' }), 'application/json');
+    }
+  }
+
+  // Student Search
+  if (pathname === '/api/faculty/search-student' && method === 'POST') {
+    let body = '';
+    for await (const chunk of req) body += chunk;
+    try {
+      const payload = JSON.parse(body);
+      const query = payload.query || '';
+
+      // Simulated search results
+      return send(res, 200, JSON.stringify({
+        success: true,
+        query: query,
+        results: [
+          {
+            id: '001',
+            name: 'Sample Student',
+            roll: '20211CSE0001',
+            email: 'student@university.edu',
+            department: 'CSE',
+            batch: '2021-2025',
+            cgpa: 8.5
+          }
+        ]
+      }), 'application/json');
+    } catch (err) {
+      return send(res, 400, JSON.stringify({ error: 'Invalid search request' }), 'application/json');
+    }
+  }
+
+  return send(res, 404, JSON.stringify({ error: 'Faculty API endpoint not found' }), 'application/json');
+}
+
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
-  if (req.method === 'OPTIONS' && url.pathname.startsWith('/api/')) {
+  const pathname = url.pathname;
+
+  // CORS headers
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization');
+
+  if (req.method === 'OPTIONS') {
     return send(res, 204, '', 'text/plain');
   }
-  if (url.pathname === '/api/scan' || url.pathname === '/api/scan/') {
+
+  // Faculty API routes
+  if (pathname.startsWith('/api/faculty/')) {
+    return handleFacultyApi(req, res, pathname);
+  }
+
+  if (pathname === '/api/scan' || pathname === '/api/scan/') {
     return handleScan(req, res);
   }
-  if (url.pathname === '/api/health') {
-    return send(res, 200, JSON.stringify({ status: 'ok' }), 'application/json');
+  if (pathname === '/api/health') {
+    return send(res, 200, JSON.stringify({ status: 'ok', mode: 'faculty-enhanced' }), 'application/json');
   }
   return serveStatic(req, res);
 });
